@@ -1,0 +1,29 @@
+from django.db import models
+import uuid
+
+
+# Create your models here.
+class Student(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    student_name = models.CharField(max_length=100)
+    student_id = models.CharField(max_length=20, unique=True)
+    id_card_img_url = models.URLField(max_length=200)
+    balance = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+
+class Trip(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    ecart = models.ForeignKey("ecart.ECart", on_delete=models.CASCADE)
+    fare = models.DecimalField(max_digits=10, decimal_places=2)
+    STATUS = (
+        ("started", "Started"),
+        ("ongoing", "Ongoing"),
+        ("completed", "Completed"),
+    )
+    status = models.CharField(max_length=10, choices=STATUS, default="pending")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Trip {self.id} - {self.student.student_name} - {self.ecart.ecart_id}"
