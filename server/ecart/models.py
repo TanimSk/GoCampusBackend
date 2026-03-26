@@ -1,10 +1,16 @@
 from django.db import models
+from django.conf import settings
 import uuid
 
 
 # Create your models here.
 class ECart(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    ecart = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="ecart_profile",
+    )
     driver_name = models.CharField(max_length=100)
     driver_phone_number = models.CharField(max_length=20)
     driver_photo_url = models.URLField(max_length=200)

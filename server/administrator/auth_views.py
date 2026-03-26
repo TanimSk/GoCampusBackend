@@ -46,7 +46,11 @@ class LoginWthPermission(APIView):
                 "first_name": user.first_name,
                 "last_name": user.last_name,
             },
-            "role": "CUSTOMER" if user.is_customer else "ADMIN",
+            "role": (
+                "STUDENT"
+                if user.is_student
+                else ("ECART" if user.is_ecart else "ADMIN")
+            ),
         }
 
         return Response(response_data, status=status.HTTP_200_OK)

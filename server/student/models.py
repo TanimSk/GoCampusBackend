@@ -1,10 +1,16 @@
 from django.db import models
+from django.conf import settings
 import uuid
 
 
 # Create your models here.
 class Student(models.Model):
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    student = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="student_profile",
+    )
     student_name = models.CharField(max_length=100)
     student_id = models.CharField(max_length=20, unique=True)
     id_card_img_url = models.URLField(max_length=200)
