@@ -48,8 +48,8 @@ class LoginWthPermission(APIView):
             },
             "role": (
                 "STUDENT"
-                if user.is_student
-                else ("ECART" if user.is_ecart else "ADMIN")
+                if user.role == "student"
+                else ("ECART" if user.role == "ecart" else "ADMIN")
             ),
         }
 

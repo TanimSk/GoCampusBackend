@@ -125,6 +125,24 @@ DATABASES = {
     # },
 }
 
+# REDIS
+REDIS_HOST = "localhost"
+REDIS_PORT = 6379
+REDIS_DB = 6
+
+
+# Channels
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": [(REDIS_HOST, REDIS_PORT, REDIS_DB)],  # Redis running locally
+            "prefix": "go_campus",  # optional
+            "group_expiry": 86400,  # optional
+        },
+    },
+}
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
@@ -227,13 +245,13 @@ ACCOUNT_ADAPTER = "all_auth_extended.all_auth_extended.AccountAdapter"
 AUTH_USER_MODEL = "administrator.User"
 
 SOCIALACCOUNT_QUERY_EMAIL = True
-ACCOUNT_AUTHENTICATION_METHOD = "email"
+ACCOUNT_AUTHENTICATION_METHOD = "username" # username, email, or both
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_SIGNUP_PASSWORD_ENTER_TWICE = False
 ACCOUNT_SESSION_REMEMBER = True
-ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+ACCOUNT_EMAIL_VERIFICATION = "optional" # mandatory, optional, none
 ACCOUNT_CONFIRM_EMAIL_ON_GET = False
 
 ############################ ---- ############################

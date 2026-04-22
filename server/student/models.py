@@ -25,11 +25,19 @@ class Trip(models.Model):
     fare = models.DecimalField(max_digits=10, decimal_places=2)
     STATUS = (
         ("started", "Started"),
-        ("ongoing", "Ongoing"),
         ("completed", "Completed"),
     )
-    status = models.CharField(max_length=10, choices=STATUS, default="pending")
+    status = models.CharField(max_length=10, choices=STATUS, default="started")
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
         return f"Trip {self.id} - {self.student.student_name} - {self.ecart.ecart_id}"
+
+
+class PaymentInvoice(models.Model):
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    student = models.ForeignKey(Student, on_delete=models.CASCADE)
+    invoice_id = models.CharField(unique=True)
+    amount = models.DecimalField()
+    platform_charge = models.DecimalField()
+    created_at = models.DateTimeField(auto_now_add=True)

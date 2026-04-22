@@ -5,9 +5,12 @@ import uuid
 
 class User(AbstractUser):
     # Boolean fields to select the type of account.
-    is_admin = models.BooleanField(default=False)
-    is_student = models.BooleanField(default=False)
-    is_ecart = models.BooleanField(default=False)
+    ROLES = (
+        ("student", "student"),
+        ("admin", "admin"),
+        ("ecart", "ecart"),
+    )
+    role = models.CharField(choices=ROLES, default="student")
 
     def __str__(self):
         return self.username

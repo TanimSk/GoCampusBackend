@@ -64,4 +64,6 @@ urlpatterns = [
     path("api/token/verify/", TokenVerifyView.as_view(), name="token_verify"),
     # ---------- Apps ------------
     path("administrator/", include("administrator.urls")),
+    path("student/", include("student.urls")),
+    path("ecart/", include("ecart.urls")),
 ]
