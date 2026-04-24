@@ -70,6 +70,8 @@ INSTALLED_APPS = [
     "corsheaders",
     # Apps
     "administrator.apps.AdministratorConfig",
+    "student.apps.StudentConfig",
+    "ecart.apps.EcartConfig",
 ]
 
 MIDDLEWARE = [
@@ -245,13 +247,13 @@ ACCOUNT_ADAPTER = "all_auth_extended.all_auth_extended.AccountAdapter"
 AUTH_USER_MODEL = "administrator.User"
 
 SOCIALACCOUNT_QUERY_EMAIL = True
-ACCOUNT_AUTHENTICATION_METHOD = "username" # username, email, or both
-ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_AUTHENTICATION_METHOD = "username"  # username, email, or both
+ACCOUNT_USERNAME_REQUIRED = True
+ACCOUNT_EMAIL_REQUIRED = False
 ACCOUNT_UNIQUE_EMAIL = True
-ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_SIGNUP_PASSWORD_ENTER_TWICE = False
 ACCOUNT_SESSION_REMEMBER = True
-ACCOUNT_EMAIL_VERIFICATION = "optional" # mandatory, optional, none
+ACCOUNT_EMAIL_VERIFICATION = "optional"  # mandatory, optional, none
 ACCOUNT_CONFIRM_EMAIL_ON_GET = False
 
 ############################ ---- ############################
@@ -281,3 +283,4 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 # Load environment variables
 FRONTEND_URL = os.getenv("FRONTEND_URL")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")

@@ -132,7 +132,7 @@ Represents a student profile linked to a user:
 - `id`
 - `student` (OneToOne to User)
 - `student_name`
-- `student_id`
+- `student_id_num`
 - `id_card_img_url`
 - `balance`
 - `created_at`
@@ -144,7 +144,7 @@ Represents an e-cart / driver profile linked to a user:
 - `driver_name`
 - `driver_phone_number`
 - `driver_photo_url`
-- `ecart_id`
+- `ecart_id_num`
 - `latitude`
 - `longitude`
 - `created_at`
@@ -168,7 +168,7 @@ To fully support the GoCampus product specification, the domain should evolve to
 
 ### Student
 - id
-- student_id
+- student_id_num
 - password
 - wallet_balance
 - created_at
@@ -192,7 +192,7 @@ To fully support the GoCampus product specification, the domain should evolve to
 
 ### Ride
 - id
-- student_id
+- student_id_num
 - cart_id
 - start_time
 - end_time
@@ -205,7 +205,7 @@ To fully support the GoCampus product specification, the domain should evolve to
 
 ### Transaction
 - id
-- student_id
+- student_id_num
 - amount
 - type
 - timestamp
@@ -337,7 +337,7 @@ classDiagram
     class Student {
         UUID id
         string student_name
-        string student_id
+        string student_id_num
         string id_card_img_url
         decimal balance
         datetime created_at
@@ -348,7 +348,7 @@ classDiagram
         string driver_name
         string driver_phone_number
         string driver_photo_url
-        string ecart_id
+        string ecart_id_num
         decimal latitude
         decimal longitude
         datetime created_at
@@ -402,7 +402,7 @@ erDiagram
         uuid id PK
         uuid user_id FK
         string student_name
-        string student_id UK
+        string student_id_num UK
         string id_card_img_url
         decimal balance
         datetime created_at
@@ -414,7 +414,7 @@ erDiagram
         string driver_name
         string driver_phone_number
         string driver_photo_url
-        string ecart_id UK
+        string ecart_id_num UK
         decimal latitude
         decimal longitude
         datetime created_at
@@ -422,8 +422,8 @@ erDiagram
 
     TRIP {
         uuid id PK
-        uuid student_id FK
-        uuid ecart_id FK
+        uuid student_id_num FK
+        uuid ecart_id_num FK
         decimal fare
         string status
         datetime created_at
@@ -431,7 +431,7 @@ erDiagram
 
     TRANSACTION {
         uuid id PK
-        uuid student_id FK
+        uuid student_id_num FK
         decimal amount
         string type
         datetime timestamp
@@ -570,7 +570,7 @@ Responsibilities:
 | `id` | UUID | primary key |
 | `student` | OneToOne(User) | owner user account |
 | `student_name` | string | student name |
-| `student_id` | string | unique campus/student identifier |
+| `student_id_num` | string | unique campus/student identifier |
 | `id_card_img_url` | URL | uploaded ID card reference |
 | `balance` | decimal | wallet balance |
 | `created_at` | datetime | auto-created |
@@ -583,7 +583,7 @@ Responsibilities:
 | `driver_name` | string | driver display name |
 | `driver_phone_number` | string | driver phone |
 | `driver_photo_url` | URL | profile photo |
-| `ecart_id` | string | unique cart identifier |
+| `ecart_id_num` | string | unique cart identifier |
 | `latitude` | decimal | latest known latitude |
 | `longitude` | decimal | latest known longitude |
 | `created_at` | datetime | auto-created |

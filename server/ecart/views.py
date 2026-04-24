@@ -74,7 +74,7 @@ class StudentOpsView(APIView):
                         "message": "Trip completed successfully.",
                         "student": {
                             "name": student.student_name,
-                            "student_id": student.student_id,
+                            "student_id_num": student.student_id_num,
                             "balance": student.balance,
                         },
                         "trip": {
@@ -110,7 +110,7 @@ class StudentOpsView(APIView):
                     "message": "ID scanned successfully.",
                     "student": {
                         "name": student.student_name,
-                        "student_id": student.student_id,
+                        "student_id_num": student.student_id_num,
                         "balance": student.balance,
                     },
                     "trip": {

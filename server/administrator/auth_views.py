@@ -16,16 +16,16 @@ from django.contrib.auth import authenticate
 class LoginWthPermission(APIView):
 
     def post(self, request, *args, **kwargs):
-        email = request.data.get("email")
+        id = request.data.get("id")
         password = request.data.get("password")
 
         # Authenticate the user
-        user = authenticate(request, email=email, password=password)
+        user = authenticate(request, username=id, password=password)
         if not user:
             return Response(
                 {
                     "success": False,
-                    "message": "Invalid email or password",
+                    "message": "Invalid ID or password",
                 },
                 status=status.HTTP_401_UNAUTHORIZED,
             )
