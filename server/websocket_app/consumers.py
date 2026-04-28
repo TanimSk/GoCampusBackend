@@ -12,16 +12,8 @@ class MessageConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.sender = self.scope["user"]
         self.room_group_name = None
-
-        try:
-            self.session_id = self.scope["url_route"]["kwargs"]["session_id"]
-
-        except ValueError:
-            await self.close()
-            return
-
         # Create room
-        self.room_group_name = f"{self.session_id}"
+        self.room_group_name = "geolocation"
 
         await self.channel_layer.group_add(self.room_group_name, self.channel_name)
         await self.accept()
@@ -31,9 +23,9 @@ class MessageConsumer(AsyncWebsocketConsumer):
         """Broadcast a message every 1 second"""
         try:
             while True:
-                print(f"Broadcasting message for session: {self.session_id}")
+                print(f"Broadcasting message")
                 # get redis session data
-                session_data = await get_async_redis().get(f"session:{self.session_id}")
+                session_data = await get_async_redis().get(f"geolocation")
                 if session_data:
                     session_data = json.loads(session_data)
 
@@ -50,7 +42,7 @@ class MessageConsumer(AsyncWebsocketConsumer):
 
         except Exception as e:
             print(
-                f"Broadcast task cancelled for session: {self.session_id}, error: {e}"
+                f"Broadcast task cancelled error: {e}"
             )
             # Task was cancelled during disconnect
             pass
@@ -75,3 +67,40 @@ class MessageConsumer(AsyncWebsocketConsumer):
                 }
             )
         )
+
+
+    # Receive message from WebSocket
+    async def receive(self, text_data):
+        text_data_json = json.loads(text_data)        
+        user_id = text_data_json.get("user_id")
+        latitude = text_data_json.get("latitude")
+        longitude = text_data_json.get("longitude")
+
+        # Store the geolocation data in Redis
+        all_ecart_data = await get_async_redis().get(f"geolocation")
+        if all_ecart_data:
+            all_ecart_data = json.loads(all_ecart_data)
+        else:
+            all_ecart_data = []
+
+        # Update or add the user's geolocation data
+        user_data = {
+            "user_id": user_id,
+            "latitude": latitude,
+            "longitude": longitude,
+        }
+
+        # Check if the user already exists in the data
+        existing_user_index = next(
+            (index for (index, d) in enumerate(all_ecart_data) if d["user_id"] == user_id), None
+        )
+
+        if existing_user_index is not None:
+            # Update existing user data
+            all_ecart_data[existing_user_index] = user_data
+        else:
+            # Add new user data
+            all_ecart_data.append(user_data)
+
+        # Store the updated geolocation data in Redis
+        await get_async_redis().set(f"geolocation", json.dumps(all_ecart_data))

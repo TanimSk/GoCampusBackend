@@ -17,5 +17,6 @@ server/administrator/migrations/*
 
 # VSCode
 .vscode/
+server/.env
 
 

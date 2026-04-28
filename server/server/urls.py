@@ -27,7 +27,7 @@ from dj_rest_auth.views import (
 )
 from django.views.generic import TemplateView
 from administrator.auth_views import LoginWthPermission, CustomPasswordChangeView
-
+from student.views import PaymentOpsView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -66,4 +66,5 @@ urlpatterns = [
     path("administrator/", include("administrator.urls")),
     path("student/", include("student.urls")),
     path("ecart/", include("ecart.urls")),
+    path("payment-ops/", PaymentOpsView.as_view(), name="payment-ops"),
 ]

@@ -12,6 +12,7 @@ from django.conf import settings
 from django.db.models import Q
 from rest_framework.permissions import BasePermission, IsAuthenticated
 from utils.shared import StandardResultsSetPagination
+from decimal import Decimal
 
 # models
 from ecart.models import ECart
@@ -34,7 +35,7 @@ class StudentOpsView(APIView):
     permission_classes = [AuthenticateOnlyEcart]
 
     def post(self, request):
-        action = request.data.get("action")
+        action = request.query_params.get("action")
         if action == "scan-id":
             # workflow:
             # 1. get student
@@ -52,7 +53,7 @@ class StudentOpsView(APIView):
                 )
 
             # query in DB
-            student = Student.objects.filter(card_id=card_id).first()
+            student = Student.objects.filter(student_id_num=card_id).first()
             if not student:
                 return Response(
                     {"success": False, "message": "Student not found."},
@@ -61,7 +62,7 @@ class StudentOpsView(APIView):
 
             # check if student is already on a trip in this ecart
             existing_trip = Trip.objects.filter(
-                student=student, ecart=request.user, status="started"
+                student=student, ecart=request.user.ecart_profile, status="started"
             ).first()
             if existing_trip:
                 existing_trip.status = "completed"
@@ -87,20 +88,23 @@ class StudentOpsView(APIView):
                 )
 
             # check balance
-            if student.balance <= 10:
+            if student.balance <= Decimal("10.00"):
                 return Response(
                     {"success": False, "message": "Insufficient balance."},
                     status=status.HTTP_400_BAD_REQUEST,
                 )
 
             # deduct fare from balance
-            fare = 10.00  # Assuming a fixed fare for simplicity
+            fare = Decimal("10.00")  # Assuming a fixed fare for simplicity
             student.balance -= fare
             student.save()
 
             # create a trip instance
             trip = Trip.objects.create(
-                student=student, ecart=request.user, fare=fare, status="started"
+                student=student,
+                ecart=request.user.ecart_profile,
+                fare=fare,
+                status="started",
             )
 
             # return success response with student details and trip info
@@ -121,3 +125,32 @@ class StudentOpsView(APIView):
                 },
                 status=status.HTTP_200_OK,
             )
+
+        else:
+            return Response(
+                {"success": False, "message": "Invalid action."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+
+class ECartProfileView(APIView):
+    permission_classes = [AuthenticateOnlyEcart]
+
+    def get(self, request):
+        ecart = request.user.ecart_profile
+        return Response(
+            {
+                "success": True,
+                "ecart": {
+                    "id": ecart.id,
+                    "ecart_id_num": ecart.ecart_id_num,
+                    "driver_name": ecart.driver_name,
+                    "driver_phone_number": ecart.driver_phone_number,
+                    "driver_photo_url": ecart.driver_photo_url,
+                    "is_online": ecart.is_online,
+                    "latitude": str(ecart.latitude),
+                    "longitude": str(ecart.longitude),
+                },
+            },
+            status=status.HTTP_200_OK,
+        )

@@ -6,7 +6,6 @@ from rest_framework.views import APIView
 from rest_framework.permissions import BasePermission
 from rest_framework import status
 from rest_framework.pagination import PageNumberPagination
-from django.http import HttpResponse
 from django.utils import timezone
 from django.conf import settings
 from django.db.models import Q
@@ -20,10 +19,15 @@ import re
 import json
 import base64
 import requests
-
+from utils.payment import payment
+from utils.redis_handler import get_sync_redis
+from decimal import Decimal
 
 # models
 from student.models import Student
+
+# serializers
+from student.serializers import StudentSerializer
 
 
 # Authenticate only Student
@@ -126,7 +130,7 @@ class StudentRegistrationView(APIView):
                 {"success": False, "message": "Passwords do not match"},
                 status=status.HTTP_400_BAD_REQUEST,
             )
-        
+
         id_card_url = payload["student_id_card_url"]
 
         try:
@@ -152,7 +156,7 @@ class StudentRegistrationView(APIView):
             return Response(
                 {"success": False, "message": "Student with this ID already exists"},
                 status=status.HTTP_400_BAD_REQUEST,
-            )        
+            )
 
         if not student_name or not student_id_num:
             return Response(
@@ -198,3 +202,89 @@ class StudentRegistrationView(APIView):
                 {"success": False, "message": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR,
             )
+
+
+class StudentProfileView(APIView):
+    permission_classes = [IsAuthenticated, AuthenticateOnlyStudent]
+
+    def get(self, request, *args, **kwargs):
+        student_profile = request.user.student_profile
+        serializer = StudentSerializer(student_profile)
+
+        return Response({"success": True, "data": serializer.data})
+
+
+class PaymentOpsView(APIView):
+    redis_client = get_sync_redis()
+
+    def post(self, request, *args, **kwargs):
+        tran_id = request.query_params.get("trans-id")
+        status_param = request.query_params.get("status")
+
+        if status_param == "success":
+            amount = request.data.get("amount")
+            stored_json = self.redis_client.get(f"payment-{tran_id}")
+
+            if not stored_json:
+                return HttpResponse(
+                    "Session expired or invalid transaction ID",
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+            stored_json = json.loads(stored_json)
+
+            student_id_num = stored_json.get("student_id")
+
+            if not amount or not student_id_num:
+                return HttpResponse(
+                    "Invalid payment info in cache",
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            try:
+                student_profile = Student.objects.get(student_id_num=student_id_num)
+                student_profile.balance += Decimal(str(amount))
+                student_profile.save()
+
+                # remove payment info from cache
+                self.redis_client.delete(f"payment-{tran_id}")
+
+                return HttpResponse("Payment successful", status=status.HTTP_200_OK)
+            except Student.DoesNotExist:
+                return HttpResponse("Student not found", status=status.HTTP_404_NOT_FOUND)
+            except Exception as e:
+                return HttpResponse(f"Error processing payment: {str(e)}", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        else:
+            return HttpResponse(f"Payment {status_param}", status=status.HTTP_200_OK)
+
+
+class PaymentView(APIView):
+    permission_classes = [AuthenticateOnlyStudent]
+
+    def post(self, request, *args, **kwargs):
+        action = request.query_params.get("action")
+
+        if action == "top-up":
+            amount = request.data.get("amount")
+
+            if not amount:
+                return Response(
+                    {"success": False, "message": "Amount is required"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            try:
+                amount = float(amount)
+            except ValueError:
+                return Response(
+                    {"success": False, "message": "Invalid amount format"},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            payload = {
+                "customer_name": request.user.student_profile.student_name,
+                "amount": amount,
+                "student_id": request.user.student_profile.student_id_num,
+            }
+
+            payment_response = payment(payload)
+            return Response({"success": True, "payment_response": payment_response})
