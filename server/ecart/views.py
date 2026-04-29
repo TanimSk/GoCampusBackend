@@ -13,10 +13,14 @@ from django.db.models import Q
 from rest_framework.permissions import BasePermission, IsAuthenticated
 from utils.shared import StandardResultsSetPagination
 from decimal import Decimal
+from django.db.models import Sum
 
 # models
 from ecart.models import ECart
 from student.models import Student, Trip
+
+# serializers
+from student.serializers import TripSerializer
 
 
 # Authenticate only Ecart
@@ -137,20 +141,118 @@ class ECartProfileView(APIView):
     permission_classes = [AuthenticateOnlyEcart]
 
     def get(self, request):
-        ecart = request.user.ecart_profile
+        view = request.query_params.get("view")
+        if view == "profile":
+            ecart = request.user.ecart_profile
+            return Response(
+                {
+                    "success": True,
+                    "ecart": {
+                        "id": ecart.id,
+                        "ecart_id_num": ecart.ecart_id_num,
+                        "driver_name": ecart.driver_name,
+                        "driver_phone_number": ecart.driver_phone_number,
+                        "driver_photo_url": ecart.driver_photo_url,
+                        "is_online": ecart.is_online,
+                        "latitude": str(ecart.latitude),
+                        "longitude": str(ecart.longitude),
+                    },
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        if view == "stats":
+            todays_earnings = Trip.objects.filter(
+                ecart=request.user.ecart_profile,
+                created_at__date=timezone.now().date(),
+                status="completed",
+            ).aggregate(total_earnings=Sum("fare"))["total_earnings"] or Decimal("0.00")
+            total_trips_today = Trip.objects.filter(
+                ecart=request.user.ecart_profile,
+                created_at__date=timezone.now().date(),
+            ).count()
+            occupied_count = Trip.objects.filter(
+                ecart=request.user.ecart_profile, status="started"
+            ).count()
+
+            return Response(
+                {
+                    "success": True,
+                    "stats": {
+                        "todays_earnings": str(todays_earnings),
+                        "total_trips_today": total_trips_today,
+                        "occupied_count": occupied_count,
+                    },
+                },
+                status=status.HTTP_200_OK,
+            )
+
+
+class RideHistoryView(APIView):
+    permission_classes = [AuthenticateOnlyEcart]
+
+    def get(self, request, *args, **kwargs):
+        total_trips = Trip.objects.filter(ecart=request.user.ecart_profile).count()
+        total_earnings = Trip.objects.filter(
+            ecart=request.user.ecart_profile, status="completed"
+        ).aggregate(total_earnings=Sum("fare"))["total_earnings"] or Decimal("0.00")
+        avg_fee = float(total_earnings) / total_trips if total_trips > 0 else 0.00
+
+        trips = Trip.objects.filter(ecart=request.user.ecart_profile).order_by(
+            "-created_at"
+        )
+        paginator = StandardResultsSetPagination()
+        paginated_trips = paginator.paginate_queryset(trips, request)
+        serializer = TripSerializer(paginated_trips, many=True)
+
         return Response(
             {
                 "success": True,
-                "ecart": {
-                    "id": ecart.id,
-                    "ecart_id_num": ecart.ecart_id_num,
-                    "driver_name": ecart.driver_name,
-                    "driver_phone_number": ecart.driver_phone_number,
-                    "driver_photo_url": ecart.driver_photo_url,
-                    "is_online": ecart.is_online,
-                    "latitude": str(ecart.latitude),
-                    "longitude": str(ecart.longitude),
-                },
+                "total_trips": total_trips,
+                "total_earnings": str(total_earnings),
+                "avg_fee": str(avg_fee),
+                "trips": paginator.get_paginated_response(serializer.data).data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class EarningsAPIView(APIView):
+    permission_classes = [AuthenticateOnlyEcart]
+
+    def get(self, request):
+        todays_earnings = Trip.objects.filter(
+            ecart=request.user.ecart_profile,
+            created_at__date=timezone.now().date(),
+            status="completed",
+        ).aggregate(total_earnings=Sum("fare"))["total_earnings"] or Decimal("0.00")
+        this_week_earnings = Trip.objects.filter(
+            ecart=request.user.ecart_profile,
+            created_at__week=timezone.now().isocalendar()[1],
+            created_at__year=timezone.now().year,
+            status="completed",
+        ).aggregate(total_earnings=Sum("fare"))["total_earnings"] or Decimal("0.00")
+        trips_today = Trip.objects.filter(
+            ecart=request.user.ecart_profile,
+            created_at__date=timezone.now().date(),
+            status="completed",
+        ).count()
+
+        todays_rides = Trip.objects.filter(
+            ecart=request.user.ecart_profile,
+            created_at__date=timezone.now().date(),
+            status="completed",
+        )
+
+        serializer = TripSerializer(todays_rides, many=True)
+        return Response(
+            {
+                "success": True,
+                "cart_id": request.user.ecart_profile.ecart_id_num,
+                "todays_earnings": str(todays_earnings),
+                "this_week_earnings": str(this_week_earnings),
+                "trips_today": trips_today,
+                "todays_rides": serializer.data,
             },
             status=status.HTTP_200_OK,
         )

@@ -22,12 +22,14 @@ import requests
 from utils.payment import payment
 from utils.redis_handler import get_sync_redis
 from decimal import Decimal
+from utils.shared import StandardResultsSetPagination
 
 # models
 from student.models import Student
+from student.models import Trip
 
 # serializers
-from student.serializers import StudentSerializer
+from student.serializers import StudentSerializer, TripSerializer
 
 
 # Authenticate only Student
@@ -208,10 +210,44 @@ class StudentProfileView(APIView):
     permission_classes = [IsAuthenticated, AuthenticateOnlyStudent]
 
     def get(self, request, *args, **kwargs):
-        student_profile = request.user.student_profile
-        serializer = StudentSerializer(student_profile)
+        view = request.query_params.get("view")
 
-        return Response({"success": True, "data": serializer.data})
+        if view == "profile":
+            student_profile = request.user.student_profile
+            serializer = StudentSerializer(student_profile)
+
+            return Response({"success": True, "data": serializer.data})
+
+        if view == "stats":
+            student_profile = request.user.student_profile
+            total_rides = Trip.objects.filter(student=student_profile).count()
+            last_ride_fare = (
+                Trip.objects.filter(student=student_profile)
+                .order_by("-created_at")
+                .first()
+            )
+            last_ride_fare = last_ride_fare.fare if last_ride_fare else Decimal("0.00")
+
+            data = {
+                "student_name": student_profile.student_name,
+                "total_rides": total_rides,
+                "balance": student_profile.balance,
+                "last_ride_fare": last_ride_fare,
+            }
+            return Response({"success": True, "data": data})
+
+
+class RideHistoryView(APIView):
+    permission_classes = [AuthenticateOnlyStudent]
+
+    def get(self, request, *args, **kwargs):
+        trips = Trip.objects.filter(student=request.user.student_profile).order_by(
+            "-created_at"
+        )
+        paginator = StandardResultsSetPagination()
+        paginated_trips = paginator.paginate_queryset(trips, request)
+        serializer = TripSerializer(paginated_trips, many=True)
+        return paginator.get_paginated_response(serializer.data)
 
 
 class PaymentOpsView(APIView):
@@ -250,9 +286,14 @@ class PaymentOpsView(APIView):
 
                 return HttpResponse("Payment successful", status=status.HTTP_200_OK)
             except Student.DoesNotExist:
-                return HttpResponse("Student not found", status=status.HTTP_404_NOT_FOUND)
+                return HttpResponse(
+                    "Student not found", status=status.HTTP_404_NOT_FOUND
+                )
             except Exception as e:
-                return HttpResponse(f"Error processing payment: {str(e)}", status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                return HttpResponse(
+                    f"Error processing payment: {str(e)}",
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
         else:
             return HttpResponse(f"Payment {status_param}", status=status.HTTP_200_OK)
 
