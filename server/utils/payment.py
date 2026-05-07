@@ -5,7 +5,7 @@ import json
 
 
 def payment(payload: dict):
-    BASE_URL = "http://localhost:8000"
+    BASE_URL = "https://https://gc-api.raphysicsedu.com"
 
     # dummy payment info
     """
